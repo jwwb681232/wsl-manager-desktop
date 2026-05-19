@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::WslError;
 
+// ── types ───────────────────────────────────────────────────────────
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct WslDistribution {
     pub name: String,
@@ -11,6 +13,24 @@ pub struct WslDistribution {
     pub version: u8,
     pub is_default: bool,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DistributionDetail {
+    pub name: String,
+    pub state: String,
+    pub version: u8,
+    pub is_default: bool,
+    pub default_user: String,
+    pub disk_info: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResourceInfo {
+    pub cpu_percent: f32,
+    pub memory_mb: f32,
+}
+
+// ── helpers ─────────────────────────────────────────────────────────
 
 fn check_output(output: &Output) -> Result<(), WslError> {
     if !output.status.success() {
@@ -21,7 +41,6 @@ fn check_output(output: &Output) -> Result<(), WslError> {
 }
 
 /// Decode output from a Windows native executable.
-/// Tries BOM detection first, then UTF-8, then falls back to UTF-16LE.
 fn decode_wsl_output(bytes: &[u8]) -> String {
     if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
         let utf16: Vec<u16> = bytes[2..]
@@ -44,11 +63,6 @@ fn decode_wsl_output(bytes: &[u8]) -> String {
     String::from_utf16_lossy(&utf16)
 }
 
-/// Parse `wsl.exe -l -v` output.
-///
-/// The output format uses the last two whitespace-separated tokens per line as
-/// [state] [version], with everything before them forming the distribution name.
-/// This correctly handles names containing spaces.
 fn parse_wsl_output(output: &str) -> Result<Vec<WslDistribution>, WslError> {
     let mut distributions = Vec::new();
 
@@ -88,6 +102,8 @@ fn parse_wsl_output(output: &str) -> Result<Vec<WslDistribution>, WslError> {
     Ok(distributions)
 }
 
+// ── commands ────────────────────────────────────────────────────────
+
 pub async fn list_distributions() -> Result<Vec<WslDistribution>, WslError> {
     let output = tokio::process::Command::new("wsl.exe")
         .args(["-l", "-v"])
@@ -104,7 +120,6 @@ pub async fn start_distribution(name: &str) -> Result<(), WslError> {
         .args(["--distribution", name])
         .output()
         .await?;
-
     check_output(&output)?;
     Ok(())
 }
@@ -114,7 +129,140 @@ pub async fn stop_distribution(name: &str) -> Result<(), WslError> {
         .args(["--terminate", name])
         .output()
         .await?;
-
     check_output(&output)?;
     Ok(())
+}
+
+pub async fn get_detail(name: &str) -> Result<DistributionDetail, WslError> {
+    let list = list_distributions().await?;
+    let distro = list
+        .into_iter()
+        .find(|d| d.name.eq_ignore_ascii_case(name))
+        .ok_or_else(|| WslError::WslExeError(format!("Distribution '{}' not found", name)))?;
+
+    let default_user = get_default_user(name).await.unwrap_or_default();
+    let disk_info = get_disk_info(name).await.unwrap_or_default();
+
+    Ok(DistributionDetail {
+        name: distro.name,
+        state: distro.state,
+        version: distro.version,
+        is_default: distro.is_default,
+        default_user,
+        disk_info,
+    })
+}
+
+async fn get_default_user(name: &str) -> Result<String, WslError> {
+    let output = tokio::process::Command::new("wsl.exe")
+        .args(["-d", name, "--exec", "whoami"])
+        .output()
+        .await?;
+    check_output(&output)?;
+    Ok(decode_wsl_output(&output.stdout).trim().to_string())
+}
+
+async fn get_disk_info(name: &str) -> Result<String, WslError> {
+    let output = tokio::process::Command::new("wsl.exe")
+        .args(["-d", name, "--exec", "df", "-h", "/"])
+        .output()
+        .await?;
+    check_output(&output)?;
+    Ok(decode_wsl_output(&output.stdout).trim().to_string())
+}
+
+pub async fn set_default(name: &str) -> Result<(), WslError> {
+    let output = tokio::process::Command::new("wsl.exe")
+        .args(["--set-default", name])
+        .output()
+        .await?;
+    check_output(&output)?;
+    Ok(())
+}
+
+pub async fn convert_version(name: &str, version: u8) -> Result<(), WslError> {
+    let output = tokio::process::Command::new("wsl.exe")
+        .args(["--set-version", name, &version.to_string()])
+        .output()
+        .await?;
+    check_output(&output)?;
+    Ok(())
+}
+
+pub async fn unregister(name: &str) -> Result<(), WslError> {
+    let output = tokio::process::Command::new("wsl.exe")
+        .args(["--unregister", name])
+        .output()
+        .await?;
+    check_output(&output)?;
+    Ok(())
+}
+
+pub async fn export_distro(name: &str, path: &str) -> Result<(), WslError> {
+    let output = tokio::process::Command::new("wsl.exe")
+        .args(["--export", name, path])
+        .output()
+        .await?;
+    check_output(&output)?;
+    Ok(())
+}
+
+pub async fn import_distro(name: &str, install_path: &str, tar_path: &str) -> Result<(), WslError> {
+    let output = tokio::process::Command::new("wsl.exe")
+        .args(["--import", name, install_path, tar_path])
+        .output()
+        .await?;
+    check_output(&output)?;
+    Ok(())
+}
+
+pub async fn get_resources(name: &str) -> Result<ResourceInfo, WslError> {
+    // Use /proc/stat and /proc/meminfo inside the WSL distro
+    let cpu_output = tokio::process::Command::new("wsl.exe")
+        .args([
+            "-d",
+            name,
+            "--exec",
+            "sh",
+            "-c",
+            "cat /proc/loadavg | awk '{print $1*100}'",
+        ])
+        .output()
+        .await?;
+
+    // Run top -bn1 to get memory info
+    let mem_output = tokio::process::Command::new("wsl.exe")
+        .args([
+            "-d",
+            name,
+            "--exec",
+            "sh",
+            "-c",
+            "free -m | awk '/Mem:/{print $3}'",
+        ])
+        .output()
+        .await?;
+
+    let cpu_percent = if cpu_output.status.success() {
+        decode_wsl_output(&cpu_output.stdout)
+            .trim()
+            .parse::<f32>()
+            .unwrap_or(0.0)
+    } else {
+        0.0
+    };
+
+    let memory_mb = if mem_output.status.success() {
+        decode_wsl_output(&mem_output.stdout)
+            .trim()
+            .parse::<f32>()
+            .unwrap_or(0.0)
+    } else {
+        0.0
+    };
+
+    Ok(ResourceInfo {
+        cpu_percent,
+        memory_mb,
+    })
 }

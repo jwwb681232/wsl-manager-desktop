@@ -74,5 +74,6 @@ export function useDistributions() {
     actionLoading,
     handleStart,
     handleStop,
+    refresh: fetchDistributions,
   };
 }

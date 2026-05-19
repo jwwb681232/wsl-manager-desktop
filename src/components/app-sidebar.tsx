@@ -1,5 +1,5 @@
-import { Boxes } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { Boxes, Settings } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -15,14 +15,17 @@ import {
 
 export function AppSidebar() {
   const { t } = useTranslation();
+  const location = useLocation();
 
   const items = [
-    {
-      title: t("sidebar.distributions"),
-      url: "/",
-      icon: Boxes,
-    },
+    { title: t("sidebar.distributions"), url: "/", icon: Boxes },
+    { title: t("sidebar.settings"), url: "/settings", icon: Settings },
   ];
+
+  function isActive(url: string) {
+    if (url === "/") return location.pathname === "/";
+    return location.pathname.startsWith(url);
+  }
 
   return (
     <Sidebar>
@@ -33,18 +36,11 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end>
-                      {({ isActive }) => (
-                        <>
-                          <item.icon />
-                          <span>{item.title}</span>
-                          {isActive && (
-                            <span className="ml-auto rounded-full bg-primary w-1.5 h-1.5" />
-                          )}
-                        </>
-                      )}
-                    </NavLink>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <Link to={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

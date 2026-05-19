@@ -8,7 +8,20 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:docs.rs)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "WebFetch(domain:wsl.dev)"
+      "WebFetch(domain:wsl.dev)",
+      "Bash(npx shadcn@latest *)",
+      "Bash(pnpm add *)",
+      "Bash(npx tsc *)",
+      "Bash(npx vite *)",
+      "Bash(pnpm approve-builds *)",
+      "Bash(pnpm tauri *)",
+      "Bash(cat \"C:\\\\\\\\Users\\\\\\\\ADMINI~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\E--rust-wsl-manager-desktop\\\\\\\\e08d8fc3-8f96-46a6-9631-38f0606dda04\\\\\\\\tasks\\\\\\\\b0vtaayo1.output\")",
+      "Bash(netstat -ano)",
+      "Bash(taskkill /PID 7232 /F)",
+      "Bash(taskkill /PID 11384 /F)",
+      "Bash(cat \"C:\\\\\\\\Users\\\\\\\\ADMINI~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\E--rust-wsl-manager-desktop\\\\\\\\e08d8fc3-8f96-46a6-9631-38f0606dda04\\\\\\\\tasks\\\\\\\\bnxwjyq3t.output\")",
+      "Bash(cargo check *)",
+      "Bash(cat \"C:\\\\\\\\Users\\\\\\\\ADMINI~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\E--rust-wsl-manager-desktop\\\\\\\\e08d8fc3-8f96-46a6-9631-38f0606dda04\\\\\\\\tasks\\\\\\\\b223zssn6.output\")"
     ]
   }
 }

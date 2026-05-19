@@ -1,49 +1,76 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
+import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+interface WslDistribution {
+  name: string;
+  state: string;
+  version: number;
+  is_default: boolean;
+}
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
+function App() {
+  const [distributions, setDistributions] = useState<WslDistribution[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    invoke<WslDistribution[]>("list_wsl_distributions")
+      .then((data) => {
+        setDistributions(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(String(err));
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return (
+      <main className="container">
+        <h1>WSL Manager</h1>
+        <p>Loading WSL distributions...</p>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="container">
+        <h1>WSL Manager</h1>
+        <p className="error">Error: {error}</p>
+      </main>
+    );
   }
 
   return (
     <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
+      <h1>WSL Distributions</h1>
+      {distributions.length === 0 ? (
+        <p>No WSL distributions found. Install one with <code>wsl --install</code>.</p>
+      ) : (
+        <table className="distro-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Name</th>
+              <th>State</th>
+              <th>Version</th>
+            </tr>
+          </thead>
+          <tbody>
+            {distributions.map((d) => (
+              <tr key={d.name} className={d.is_default ? "default-row" : ""}>
+                <td>{d.is_default ? "*" : ""}</td>
+                <td>{d.name}</td>
+                <td>{d.state}</td>
+                <td>WSL {d.version}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </main>
   );
 }

@@ -95,6 +95,46 @@ button {
   margin-right: 5px;
 }
 
+.error {
+  color: #e74c3c;
+  font-weight: 500;
+}
+
+.distro-table {
+  width: 100%;
+  max-width: 600px;
+  margin: 1rem auto;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.distro-table th,
+.distro-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #ccc;
+}
+
+.distro-table th {
+  font-weight: 600;
+  background-color: #eee;
+}
+
+.default-row {
+  background-color: #e8f5e9;
+}
+
+.default-row td:first-child {
+  font-weight: bold;
+  color: #2e7d32;
+}
+
+code {
+  background-color: #eee;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     color: #f6f6f6;

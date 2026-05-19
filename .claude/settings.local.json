@@ -3,7 +3,12 @@
     "allow": [
       "Bash(cargo build *)",
       "Bash(pnpm build *)",
-      "Bash(wsl.exe *)"
+      "Bash(wsl.exe *)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.rs)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:wsl.dev)"
     ]
   }
 }

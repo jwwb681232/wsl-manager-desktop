@@ -153,4 +153,25 @@ code {
   button:active {
     background-color: #0f0f0f69;
   }
+
+  .distro-table th,
+  .distro-table td {
+    border-bottom-color: #444;
+  }
+
+  .distro-table th {
+    background-color: #3a3a3a;
+  }
+
+  .default-row {
+    background-color: #1b3a1b;
+  }
+
+  .default-row td:first-child {
+    color: #66bb6a;
+  }
+
+  code {
+    background-color: #3a3a3a;
+  }
 }

@@ -11,8 +11,20 @@ pub struct WslDistribution {
 /// Decode output from a Windows native executable.
 /// Tries UTF-8 first; falls back to UTF-16LE (common for Windows CLI tools).
 fn decode_wsl_output(bytes: &[u8]) -> String {
+    // Check for UTF-16LE BOM (0xFF 0xFE) first — Windows tools often emit this.
+    if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
+        let utf16: Vec<u16> = bytes[2..]
+            .chunks(2)
+            .filter(|c| c.len() == 2)
+            .map(|c| u16::from_le_bytes([c[0], c[1]]))
+            .collect();
+        return String::from_utf16_lossy(&utf16);
+    }
+    // If UTF-8 decode succeeds but contains null bytes, it's actually UTF-16LE without BOM.
     if let Ok(s) = std::str::from_utf8(bytes) {
-        return s.to_string();
+        if !s.contains('\0') {
+            return s.to_string();
+        }
     }
     let utf16: Vec<u16> = bytes
         .chunks(2)

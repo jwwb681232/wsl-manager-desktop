@@ -15,15 +15,23 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    invoke<WslDistribution[]>("list_wsl_distributions")
-      .then((data) => {
-        setDistributions(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(String(err));
-        setLoading(false);
-      });
+    function fetchDistributions() {
+      invoke<WslDistribution[]>("list_wsl_distributions")
+        .then((data) => {
+          setDistributions(data);
+          setError(null);
+          setLoading(false);
+        })
+        .catch((err) => {
+          setError(String(err));
+          setLoading(false);
+        });
+    }
+
+    fetchDistributions();
+
+    const interval = setInterval(fetchDistributions, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) {

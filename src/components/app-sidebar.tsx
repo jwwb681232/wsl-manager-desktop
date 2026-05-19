@@ -1,4 +1,6 @@
 import { Boxes } from "lucide-react";
+import { NavLink } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import {
   Sidebar,
@@ -11,29 +13,38 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-const items = [
-  {
-    title: "发行版列表",
-    url: "#",
-    icon: Boxes,
-  },
-];
-
 export function AppSidebar() {
+  const { t } = useTranslation();
+
+  const items = [
+    {
+      title: t("sidebar.distributions"),
+      url: "/",
+      icon: Boxes,
+    },
+  ];
+
   return (
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>WSL Manager</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("app.title")}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive>
-                    <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
+                  <SidebarMenuButton asChild>
+                    <NavLink to={item.url} end>
+                      {({ isActive }) => (
+                        <>
+                          <item.icon />
+                          <span>{item.title}</span>
+                          {isActive && (
+                            <span className="ml-auto rounded-full bg-primary w-1.5 h-1.5" />
+                          )}
+                        </>
+                      )}
+                    </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

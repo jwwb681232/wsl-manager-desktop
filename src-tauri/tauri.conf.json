@@ -12,13 +12,15 @@
   "app": {
     "windows": [
       {
-        "title": "wsl-manager-desktop",
-        "width": 800,
-        "height": 600
+        "title": "WSL Manager",
+        "width": 900,
+        "height": 600,
+        "minWidth": 640,
+        "minHeight": 400
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'"
     }
   },
   "bundle": {

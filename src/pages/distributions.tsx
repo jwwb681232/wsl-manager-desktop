@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Play, Square } from "lucide-react";
+import { listen } from "@tauri-apps/api/event";
+import { Loader2, Play, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface WslDistribution {
@@ -31,8 +32,19 @@ export default function DistributionsPage() {
 
   useEffect(() => {
     fetchDistributions();
-    const interval = setInterval(fetchDistributions, 3000);
-    return () => clearInterval(interval);
+
+    const unlistenPromise = listen<WslDistribution[]>(
+      "wsl-state-changed",
+      (event) => {
+        setDistributions(event.payload);
+        setError(null);
+        setLoading(false);
+      },
+    );
+
+    return () => {
+      unlistenPromise.then((fn) => fn());
+    };
   }, []);
 
   function handleStart(name: string) {
@@ -106,7 +118,11 @@ export default function DistributionsPage() {
                   onClick={() => handleStop(d.name)}
                   disabled={actionLoading === d.name}
                 >
-                  <Square className="h-3 w-3" />
+                  {actionLoading === d.name ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Square className="h-3 w-3" />
+                  )}
                   Stop
                 </Button>
               ) : (
@@ -116,7 +132,11 @@ export default function DistributionsPage() {
                   onClick={() => handleStart(d.name)}
                   disabled={actionLoading === d.name}
                 >
-                  <Play className="h-3 w-3" />
+                  {actionLoading === d.name ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Play className="h-3 w-3" />
+                  )}
                   Start
                 </Button>
               )}

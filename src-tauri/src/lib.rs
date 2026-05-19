@@ -1,11 +1,22 @@
-use serde::{Deserialize, Serialize};
+use std::process::Output;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+use serde::{Deserialize, Serialize};
+use tauri::Emitter;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct WslDistribution {
     pub name: String,
     pub state: String,
     pub version: u8,
     pub is_default: bool,
+}
+
+fn check_output(output: &Output) -> Result<(), String> {
+    if !output.status.success() {
+        let stderr = decode_wsl_output(&output.stderr);
+        return Err(format!("wsl.exe failed: {}", stderr));
+    }
+    Ok(())
 }
 
 /// Decode output from a Windows native executable.
@@ -74,54 +85,89 @@ fn parse_wsl_output(output: &str) -> Result<Vec<WslDistribution>, String> {
 }
 
 #[tauri::command]
-fn list_wsl_distributions() -> Result<Vec<WslDistribution>, String> {
-    let output = std::process::Command::new("wsl.exe")
+async fn list_wsl_distributions() -> Result<Vec<WslDistribution>, String> {
+    let output = tokio::process::Command::new("wsl.exe")
         .args(["-l", "-v"])
         .output()
+        .await
         .map_err(|e| format!("Failed to execute wsl.exe: {}", e))?;
 
-    if !output.status.success() {
-        let stderr = decode_wsl_output(&output.stderr);
-        return Err(format!("wsl.exe failed: {}", stderr));
-    }
+    check_output(&output)?;
 
     let stdout = decode_wsl_output(&output.stdout);
     parse_wsl_output(&stdout)
 }
 
 #[tauri::command]
-fn start_wsl_distribution(name: &str) -> Result<(), String> {
-    let output = std::process::Command::new("wsl.exe")
+async fn start_wsl_distribution(name: &str) -> Result<(), String> {
+    let output = tokio::process::Command::new("wsl.exe")
         .args(["--distribution", name, "--exec", "/bin/true"])
         .output()
+        .await
         .map_err(|e| format!("Failed to execute wsl.exe: {}", e))?;
 
-    if !output.status.success() {
-        let stderr = decode_wsl_output(&output.stderr);
-        return Err(format!("Failed to start distribution '{}': {}", name, stderr));
-    }
+    check_output(&output)?;
     Ok(())
 }
 
 #[tauri::command]
-fn stop_wsl_distribution(name: &str) -> Result<(), String> {
-    let output = std::process::Command::new("wsl.exe")
+async fn stop_wsl_distribution(name: &str) -> Result<(), String> {
+    let output = tokio::process::Command::new("wsl.exe")
         .args(["--terminate", name])
         .output()
+        .await
         .map_err(|e| format!("Failed to execute wsl.exe: {}", e))?;
 
-    if !output.status.success() {
-        let stderr = decode_wsl_output(&output.stderr);
-        return Err(format!("Failed to stop distribution '{}': {}", name, stderr));
-    }
+    check_output(&output)?;
     Ok(())
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+async fn poll_wsl_state(app_handle: tauri::AppHandle) {
+    let mut prev_state: Vec<WslDistribution> = vec![];
+    loop {
+        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+
+        let output = match tokio::process::Command::new("wsl.exe")
+            .args(["-l", "-v"])
+            .output()
+            .await
+        {
+            Ok(o) => o,
+            Err(_) => continue,
+        };
+        if !output.status.success() {
+            continue;
+        }
+        let stdout = decode_wsl_output(&output.stdout);
+        let distros = match parse_wsl_output(&stdout) {
+            Ok(d) => d,
+            Err(_) => continue,
+        };
+        if distros != prev_state {
+            let _ = app_handle.emit("wsl-state-changed", &distros);
+            prev_state = distros;
+        }
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![list_wsl_distributions, start_wsl_distribution, stop_wsl_distribution])
+        .invoke_handler(tauri::generate_handler![
+            list_wsl_distributions,
+            start_wsl_distribution,
+            stop_wsl_distribution
+        ])
+        .setup(|app| {
+            let handle = app.handle().clone();
+            std::thread::spawn(move || {
+                let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
+                rt.block_on(poll_wsl_state(handle));
+            });
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -178,7 +178,7 @@ pub async fn list_distributions() -> Result<Vec<WslDistribution>, WslError> {
 
 pub async fn start_distribution(name: &str) -> Result<(), WslError> {
     let output = wsl_command()
-        .args(["--distribution", name])
+        .args(["--distribution", name, "--exec", "/bin/true"])
         .output()
         .await?;
     check_output(&output)?;

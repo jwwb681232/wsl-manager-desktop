@@ -71,7 +71,7 @@ export default function DistributionsPage() {
   }
 
   function handleOpenTerminal(name: string) {
-    invoke("open_wsl_terminal", { name }).catch(() => {});
+    invoke("open_wsl_terminal", { name }).catch((err) => alert(String(err)));
   }
 
   function handleFetchResources(name: string) {

@@ -4,6 +4,21 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::WslError;
 
+#[cfg(windows)]
+extern "system" {
+    fn MultiByteToWideChar(
+        CodePage: u32,
+        dwFlags: u32,
+        lpMultiByteStr: *const u8,
+        cbMultiByte: i32,
+        lpWideCharStr: *mut u16,
+        cchWideChar: i32,
+    ) -> i32;
+}
+
+#[cfg(windows)]
+const CP_ACP: u32 = 0;
+
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 fn wsl_command() -> tokio::process::Command {
@@ -51,6 +66,10 @@ fn check_output(output: &Output) -> Result<(), WslError> {
 
 /// Decode output from a Windows native executable.
 fn decode_wsl_output(bytes: &[u8]) -> String {
+    if bytes.is_empty() {
+        return String::new();
+    }
+    // UTF-16 LE with BOM (0xFF 0xFE) — standard Windows Unicode output
     if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
         let utf16: Vec<u16> = bytes[2..]
             .chunks(2)
@@ -59,17 +78,50 @@ fn decode_wsl_output(bytes: &[u8]) -> String {
             .collect();
         return String::from_utf16_lossy(&utf16);
     }
+    // UTF-8 (reject embedded nulls — likely UTF-16 masquerading)
     if let Ok(s) = std::str::from_utf8(bytes) {
         if !s.contains('\0') {
             return s.to_string();
         }
     }
-    let utf16: Vec<u16> = bytes
-        .chunks(2)
-        .filter(|c| c.len() == 2)
-        .map(|c| u16::from_le_bytes([c[0], c[1]]))
-        .collect();
-    String::from_utf16_lossy(&utf16)
+    // UTF-16 LE without BOM (common for Windows executables without explicit BOM)
+    {
+        let utf16: Vec<u16> = bytes
+            .chunks(2)
+            .filter(|c| c.len() == 2)
+            .map(|c| u16::from_le_bytes([c[0], c[1]]))
+            .collect();
+        let s = String::from_utf16_lossy(&utf16);
+        // Only accept if it looks like readable text (not all replacement chars)
+        if !s.is_empty() && !s.chars().all(|c| c == std::char::REPLACEMENT_CHARACTER) {
+            return s;
+        }
+    }
+    // System ANSI code page (e.g. CP936/GBK on Chinese Windows) — last resort
+    #[cfg(windows)]
+    if let Some(s) = decode_system_ansi(bytes) {
+        return s;
+    }
+    // Absolute last resort
+    String::from_utf8_lossy(bytes).to_string()
+}
+
+#[cfg(windows)]
+fn decode_system_ansi(bytes: &[u8]) -> Option<String> {
+    if bytes.is_empty() {
+        return Some(String::new());
+    }
+    let len = bytes.len().try_into().ok()?;
+    unsafe {
+        let wide_len = MultiByteToWideChar(CP_ACP, 0, bytes.as_ptr(), len, std::ptr::null_mut(), 0);
+        if wide_len == 0 {
+            return None;
+        }
+        let mut wide: Vec<u16> = vec![0; wide_len as usize];
+        MultiByteToWideChar(CP_ACP, 0, bytes.as_ptr(), len, wide.as_mut_ptr(), wide_len);
+        wide.truncate(wide_len as usize);
+        Some(String::from_utf16_lossy(&wide))
+    }
 }
 
 fn parse_wsl_output(output: &str) -> Result<Vec<WslDistribution>, WslError> {

@@ -47,8 +47,9 @@ async fn stop_wsl_distribution(name: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn open_wsl_terminal(name: String) -> Result<(), String> {
+async fn open_wsl_terminal(name: String) -> Result<(), String> {
     info!("Opening terminal for: {}", name);
+    wsl::start_distribution(&name).await.map_err(|e| e.to_string())?;
     wsl::open_terminal(&name).map_err(|e| e.to_string())
 }
 

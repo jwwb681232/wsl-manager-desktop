@@ -27,7 +27,10 @@
       "Bash(cat \"C:\\\\\\\\Users\\\\\\\\ADMINI~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\E--rust-wsl-manager-desktop\\\\\\\\e08d8fc3-8f96-46a6-9631-38f0606dda04\\\\\\\\tasks\\\\\\\\be40td5mg.output\")",
       "Bash(cat \"C:\\\\\\\\Users\\\\\\\\ADMINI~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\E--rust-wsl-manager-desktop\\\\\\\\e08d8fc3-8f96-46a6-9631-38f0606dda04\\\\\\\\tasks\\\\\\\\be8a68cey.output\")",
       "Bash(cat \"C:\\\\\\\\Users\\\\\\\\ADMINI~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\E--rust-wsl-manager-desktop\\\\\\\\e08d8fc3-8f96-46a6-9631-38f0606dda04\\\\\\\\tasks\\\\\\\\bk338m397.output\")",
-      "Bash(cat \"C:\\\\\\\\Users\\\\\\\\ADMINI~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\E--rust-wsl-manager-desktop\\\\\\\\e08d8fc3-8f96-46a6-9631-38f0606dda04\\\\\\\\tasks\\\\\\\\b0t4ee6s4.output\")"
+      "Bash(cat \"C:\\\\\\\\Users\\\\\\\\ADMINI~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\E--rust-wsl-manager-desktop\\\\\\\\e08d8fc3-8f96-46a6-9631-38f0606dda04\\\\\\\\tasks\\\\\\\\b0t4ee6s4.output\")",
+      "Bash(git show *)",
+      "Bash(taskkill //F //IM wsl-manager-desktop.exe)",
+      "Bash(taskkill //F //IM node.exe //FI \"WINDOWTITLE eq *vite*\")"
     ]
   }
 }

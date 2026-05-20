@@ -4,6 +4,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::WslError;
 
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+fn wsl_command() -> tokio::process::Command {
+    let mut cmd = tokio::process::Command::new("wsl.exe");
+    #[cfg(windows)]
+    cmd.creation_flags(CREATE_NO_WINDOW);
+    cmd
+}
+
 // ── types ───────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -105,7 +114,7 @@ fn parse_wsl_output(output: &str) -> Result<Vec<WslDistribution>, WslError> {
 // ── commands ────────────────────────────────────────────────────────
 
 pub async fn list_distributions() -> Result<Vec<WslDistribution>, WslError> {
-    let output = tokio::process::Command::new("wsl.exe")
+    let output = wsl_command()
         .args(["-l", "-v"])
         .output()
         .await?;
@@ -116,7 +125,7 @@ pub async fn list_distributions() -> Result<Vec<WslDistribution>, WslError> {
 }
 
 pub async fn start_distribution(name: &str) -> Result<(), WslError> {
-    let output = tokio::process::Command::new("wsl.exe")
+    let output = wsl_command()
         .args(["--distribution", name])
         .output()
         .await?;
@@ -125,7 +134,7 @@ pub async fn start_distribution(name: &str) -> Result<(), WslError> {
 }
 
 pub async fn stop_distribution(name: &str) -> Result<(), WslError> {
-    let output = tokio::process::Command::new("wsl.exe")
+    let output = wsl_command()
         .args(["--terminate", name])
         .output()
         .await?;
@@ -154,7 +163,7 @@ pub async fn get_detail(name: &str) -> Result<DistributionDetail, WslError> {
 }
 
 async fn get_default_user(name: &str) -> Result<String, WslError> {
-    let output = tokio::process::Command::new("wsl.exe")
+    let output = wsl_command()
         .args(["-d", name, "--exec", "whoami"])
         .output()
         .await?;
@@ -163,7 +172,7 @@ async fn get_default_user(name: &str) -> Result<String, WslError> {
 }
 
 async fn get_disk_info(name: &str) -> Result<String, WslError> {
-    let output = tokio::process::Command::new("wsl.exe")
+    let output = wsl_command()
         .args(["-d", name, "--exec", "df", "-h", "/"])
         .output()
         .await?;
@@ -172,7 +181,7 @@ async fn get_disk_info(name: &str) -> Result<String, WslError> {
 }
 
 pub async fn set_default(name: &str) -> Result<(), WslError> {
-    let output = tokio::process::Command::new("wsl.exe")
+    let output = wsl_command()
         .args(["--set-default", name])
         .output()
         .await?;
@@ -181,7 +190,7 @@ pub async fn set_default(name: &str) -> Result<(), WslError> {
 }
 
 pub async fn convert_version(name: &str, version: u8) -> Result<(), WslError> {
-    let output = tokio::process::Command::new("wsl.exe")
+    let output = wsl_command()
         .args(["--set-version", name, &version.to_string()])
         .output()
         .await?;
@@ -190,7 +199,7 @@ pub async fn convert_version(name: &str, version: u8) -> Result<(), WslError> {
 }
 
 pub async fn unregister(name: &str) -> Result<(), WslError> {
-    let output = tokio::process::Command::new("wsl.exe")
+    let output = wsl_command()
         .args(["--unregister", name])
         .output()
         .await?;
@@ -199,7 +208,7 @@ pub async fn unregister(name: &str) -> Result<(), WslError> {
 }
 
 pub async fn export_distro(name: &str, path: &str) -> Result<(), WslError> {
-    let output = tokio::process::Command::new("wsl.exe")
+    let output = wsl_command()
         .args(["--export", name, path])
         .output()
         .await?;
@@ -208,7 +217,7 @@ pub async fn export_distro(name: &str, path: &str) -> Result<(), WslError> {
 }
 
 pub async fn import_distro(name: &str, install_path: &str, tar_path: &str) -> Result<(), WslError> {
-    let output = tokio::process::Command::new("wsl.exe")
+    let output = wsl_command()
         .args(["--import", name, install_path, tar_path])
         .output()
         .await?;
@@ -218,7 +227,7 @@ pub async fn import_distro(name: &str, install_path: &str, tar_path: &str) -> Re
 
 pub async fn get_resources(name: &str) -> Result<ResourceInfo, WslError> {
     // Use /proc/stat and /proc/meminfo inside the WSL distro
-    let cpu_output = tokio::process::Command::new("wsl.exe")
+    let cpu_output = wsl_command()
         .args([
             "-d",
             name,
@@ -231,7 +240,7 @@ pub async fn get_resources(name: &str) -> Result<ResourceInfo, WslError> {
         .await?;
 
     // Run top -bn1 to get memory info
-    let mem_output = tokio::process::Command::new("wsl.exe")
+    let mem_output = wsl_command()
         .args([
             "-d",
             name,

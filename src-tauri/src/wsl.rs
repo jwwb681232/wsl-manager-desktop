@@ -133,6 +133,14 @@ pub async fn start_distribution(name: &str) -> Result<(), WslError> {
     Ok(())
 }
 
+pub fn open_terminal(name: &str) -> Result<(), WslError> {
+    std::process::Command::new("wsl.exe")
+        .args(["--distribution", name])
+        .spawn()
+        .map_err(WslError::from)?;
+    Ok(())
+}
+
 pub async fn stop_distribution(name: &str) -> Result<(), WslError> {
     let output = wsl_command()
         .args(["--terminate", name])

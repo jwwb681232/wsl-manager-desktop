@@ -47,6 +47,12 @@ async fn stop_wsl_distribution(name: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn open_wsl_terminal(name: String) -> Result<(), String> {
+    info!("Opening terminal for: {}", name);
+    wsl::open_terminal(&name).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 async fn get_distribution_detail(name: String) -> Result<DistributionDetail, String> {
     wsl::get_detail(&name).await.map_err(|e| e.to_string())
 }
@@ -120,6 +126,7 @@ pub fn run() {
             list_wsl_distributions,
             start_wsl_distribution,
             stop_wsl_distribution,
+            open_wsl_terminal,
             get_distribution_detail,
             set_default_distribution,
             convert_distribution_version,
